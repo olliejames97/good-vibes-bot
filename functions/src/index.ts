@@ -15,9 +15,10 @@ const T = new Twit({
 });
 
 exports.scheduledFunction = functions.pubsub
-  .schedule("every 5 minutes")
+  .schedule("every 2 minutes")
   .onRun((context) => {
     findAndRetweet();
+    return null;
   });
 
 export const runWithHttp = functions.https.onRequest(
@@ -35,7 +36,7 @@ const findAndRetweet = () => {
   setTimeout(() => {
     console.log("timed out, no tweet found");
     stream.stop();
-  }, 4 * 60 * 1000);
+  }, 0.5 * 60 * 1000);
 
   stream.on("tweet", function (tweet: any) {
     const analysis = analyzeTweet(tweet.text);
@@ -58,6 +59,7 @@ const retweet = (id: string) => {
       console.error(err);
       return;
     }
+    console.log("retweeted", id);
   });
 };
 const analyzeTweet = (
