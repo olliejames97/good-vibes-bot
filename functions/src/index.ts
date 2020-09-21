@@ -15,38 +15,44 @@ const T = new Twit({
 });
 
 exports.scheduledFunction = functions.pubsub
-  .schedule("every 2 minutes")
+  .schedule("every 4 minutes")
   .onRun((context) => {
-    findAndRetweet();
+    console.log("running");
+    findAndRetweet().catch(console.error);
     return null;
   });
 
 export const runWithHttp = functions.https.onRequest(
   async (request, response) => {
-    response.send("Running!");
-    findAndRetweet();
+    findAndRetweet().catch(console.error);
+
+    console.log("done streaming");
   }
 );
 
-const findAndRetweet = () => {
+const findAndRetweet = async () => {
   const stream = T.stream("statuses/sample", {
     tweet_mode: "extended",
   });
-
-  setTimeout(() => {
-    console.log("timed out, no tweet found");
-    stream.stop();
-  }, 0.5 * 60 * 1000);
+  let retweeted: null | { tweetId: string; text: string } = null;
 
   stream.on("tweet", function (tweet: any) {
     const analysis = analyzeTweet(tweet.text);
     if (analysis.score > config.minimumScore) {
       retweet(tweet.id_str);
-      console.log("done");
       stream.stop();
+      retweeted = {
+        tweetId: tweet.id_str as string,
+        text: tweet.text as string,
+      };
     }
   });
-  return null;
+
+  setTimeout(() => {
+    console.log("done", retweeted);
+    stream.stop();
+    return retweeted;
+  }, 2 * 60 * 1000);
 };
 
 const retweet = (id: string) => {
@@ -83,6 +89,5 @@ const analyzeTweet = (
   ) {
     score = 0;
   }
-
   return { score };
 };
